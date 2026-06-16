@@ -14,10 +14,24 @@ public class DamperSample : MonoBehaviour
     private bool _dragging;
     private float _dragGrabOffset;
 
-    private void Start()
+    public float CurrentCoord
+    {
+        get { return ProjectToAxis(transform.position); }
+    }
+
+    public Vector3 AxisDir
+    {
+        get { return Axis.sqrMagnitude > 0f ? Axis.normalized : Vector3.right; }
+    }
+
+    private void Awake()
     {
         _origin = transform.position;
         _normalizedAxis = Axis.sqrMagnitude > 0f ? Axis.normalized : Vector3.right;
+    }
+
+    private void Start()
+    {
         _mainCamera = Camera.main;
 
         if (Target != null)
