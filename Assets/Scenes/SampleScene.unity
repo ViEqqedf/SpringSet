@@ -200,8 +200,8 @@ Transform:
   m_GameObject: {fileID: 187459668}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 5}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -325,9 +325,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Target: {fileID: 187459672}
-  Axis: {x: 1, y: 0, z: 0}
+  Axis: {x: 0, y: 0, z: 1}
   Factor: 5
   AxisLength: 10
+  DamperScope: {fileID: 1414272079}
+  Interval: 0.0167
 --- !u!135 &321336233
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -435,8 +437,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.70710677, y: -2.3283062e-10, z: 1.7462297e-10, w: 0.7071068}
-  m_LocalPosition: {x: 0.09320081, y: 20.567959, z: 9.685475}
+  m_LocalRotation: {x: -0.69341, y: 0.0006461714, z: -0.0006223287, w: -0.7205428}
+  m_LocalPosition: {x: -8.85, y: 10, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -622,7 +624,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!64 &683260955
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -704,7 +706,7 @@ Transform:
   m_GameObject: {fileID: 683260954}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -5, z: 0}
   m_LocalScale: {x: 10, y: 1, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -792,7 +794,7 @@ MonoBehaviour:
   Source: {fileID: 321336232}
   SampleCount: 256
   TimeWindow: 4
-  Length: 8
+  Length: 30
   ValueScale: 1
 --- !u!120 &1414272080
 LineRenderer:
@@ -841,7 +843,7 @@ LineRenderer:
   - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 0.1
+    widthMultiplier: 0.05
     widthCurve:
       serializedVersion: 2
       m_Curve:
@@ -859,8 +861,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0, g: 0, b: 0, a: 1}
-      key1: {r: 0, g: 0, b: 0, a: 1}
+      key0: {r: 0, g: 0.057581425, b: 1, a: 1}
+      key1: {r: 0, g: 0.063622236, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
