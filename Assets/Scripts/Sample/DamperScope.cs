@@ -5,15 +5,12 @@ public class DamperScope : MonoBehaviour
 {
     public DamperSample Source;
     public int SampleCount = 256;
-    public float TimeWindow = 4f;
     public float Length = 8f;
     public float ValueScale = 1f;
 
     private LineRenderer _line;
     private float[] _buffer;
     private int _head;
-    private float _timer;
-    private float _interval;
     private Vector3 _timeDir;
     private Vector3 _valueDir;
 
@@ -24,8 +21,6 @@ public class DamperScope : MonoBehaviour
         _line.positionCount = SampleCount;
         _buffer = new float[SampleCount];
         _head = 0;
-        _timer = 0f;
-        _interval = TimeWindow / SampleCount;
 
         UpdateDirections();
 
@@ -35,20 +30,19 @@ public class DamperScope : MonoBehaviour
         RefreshLine();
     }
 
-    private void Update()
+    private void FixedUpdate()
+    {
+
+    }
+
+    public void UpdateScope()
     {
         if (Source == null)
             return;
 
         UpdateDirections();
-
-        _timer += Time.deltaTime;
-        while (_timer >= _interval)
-        {
-            _timer -= _interval;
-            _buffer[_head] = Source.CurrentCoord;
-            _head = (_head + 1) % SampleCount;
-        }
+        _buffer[_head] = Source.CurrentCoord;
+        _head = (_head + 1) % SampleCount;
         RefreshLine();
     }
 
@@ -63,7 +57,7 @@ public class DamperScope : MonoBehaviour
 
     private void RefreshLine()
     {
-        float spacing = Length / Mathf.Max(SampleCount - 1, 1);
+        float spacing = Length / Mathf.Max(SampleCount - 1, 1) * (Source.Interval / 0.0167f);
         Vector3 origin = transform.position;
         for (int i = 0; i < SampleCount; i++)
         {

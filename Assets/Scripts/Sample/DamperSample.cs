@@ -1,5 +1,6 @@
 using UnityEngine;
 using DefaultNamespace;
+using UnityEngine.UI;
 
 public class DamperSample : MonoBehaviour
 {
@@ -7,7 +8,10 @@ public class DamperSample : MonoBehaviour
     public Vector3 Axis = Vector3.right;
     public float Factor = 5f;
     public float AxisLength = 10f;
+    public DamperScope DamperScope;
+    public float Interval = 0.0167f;
 
+    private float _timer;
     private Vector3 _origin;
     private Vector3 _normalizedAxis;
     private Camera _mainCamera;
@@ -43,8 +47,21 @@ public class DamperSample : MonoBehaviour
 
     private void Update()
     {
+        _timer += Time.deltaTime;
+        Interval = Mathf.Max(0.0167f, Interval);
+        while (_timer >= Interval)
+        {
+            _timer -= Interval;
+            ApplyDamper();
+            DamperScope.UpdateScope();
+        }
+
         HandleDrag();
-        ApplyDamper();
+    }
+
+    private void FixedUpdate()
+    {
+
     }
 
     private void HandleDrag()
