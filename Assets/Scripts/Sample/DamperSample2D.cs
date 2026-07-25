@@ -12,12 +12,6 @@ public class DamperSample2D : MonoBehaviour
 
     private float _timer;
 
-    private void Start()
-    {
-        if (Scope != null)
-            Scope.SetTarget(Target);
-    }
-
     private void Update()
     {
         _timer += Time.deltaTime;
@@ -33,8 +27,6 @@ public class DamperSample2D : MonoBehaviour
     public void SetTarget(float target)
     {
         Target = target;
-        if (Scope != null)
-            Scope.SetTarget(Target);
     }
 
     private void Step()

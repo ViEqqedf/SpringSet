@@ -10,13 +10,13 @@ public class DamperScope2D : Graphic
     // 值域：曲线在控件内映射的范围，[-ValueRange, +ValueRange] 对应控件上下边缘
     public float ValueRange = 1f;
     public float LineThickness = 2f;
-    public Color LineColor = Color.green;
-    public Color TargetLineColor = new Color(1f, 0.6f, 0.2f, 1f);
+    public Color LineColor = new Color(0.2f, 0.5f, 1f, 1f);
+    public Color PointColor = new Color(0.6f, 0.8f, 1f, 1f);
+    public float PointSize = 5f;
     public Color BaselineColor = new Color(1f, 1f, 1f, 0.2f);
 
     private float[] _buffer;
     private int _head;
-    private float _target;
 
     protected override void Awake()
     {
@@ -30,13 +30,6 @@ public class DamperScope2D : Graphic
         EnsureBuffer();
         _buffer[_head] = value;
         _head = (_head + 1) % _buffer.Length;
-        SetVerticesDirty();
-    }
-
-    // 设定目标值，用于绘制目标横线
-    public void SetTarget(float target)
-    {
-        _target = target;
         SetVerticesDirty();
     }
 
@@ -69,8 +62,6 @@ public class DamperScope2D : Graphic
 
         // 基准线（value = 0）
         DrawHorizontalLine(vh, ValueToLocalY(0f), rect, BaselineColor);
-        // 目标横线
-        DrawHorizontalLine(vh, ValueToLocalY(_target), rect, TargetLineColor);
 
         // 曲线：最新样本在右侧，向左滚动
         float spacing = rect.width / (count - 1);
@@ -86,6 +77,15 @@ public class DamperScope2D : Graphic
                 AddSegment(vh, prev, point, LineColor);
             prev = point;
             hasPrev = true;
+        }
+
+        // 每个采样点上画一个点
+        for (int i = 0; i < count; i++)
+        {
+            int bufferIndex = ((_head - 1 - i) % count + count) % count;
+            float x = rect.xMax - i * spacing;
+            float y = ValueToLocalY(_buffer[bufferIndex]);
+            AddPoint(vh, new Vector2(x, y), PointColor);
         }
     }
 
@@ -117,6 +117,27 @@ public class DamperScope2D : Graphic
         vertex.position = b + normal;
         vh.AddVert(vertex);
         vertex.position = b - normal;
+        vh.AddVert(vertex);
+
+        vh.AddTriangle(index, index + 1, index + 2);
+        vh.AddTriangle(index + 2, index + 3, index);
+    }
+
+    // 在采样位置画一个方块点
+    private void AddPoint(VertexHelper vh, Vector2 center, Color color)
+    {
+        float half = PointSize * 0.5f;
+        int index = vh.currentVertCount;
+        UIVertex vertex = UIVertex.simpleVert;
+        vertex.color = color;
+
+        vertex.position = center + new Vector2(-half, -half);
+        vh.AddVert(vertex);
+        vertex.position = center + new Vector2(-half, half);
+        vh.AddVert(vertex);
+        vertex.position = center + new Vector2(half, half);
+        vh.AddVert(vertex);
+        vertex.position = center + new Vector2(half, -half);
         vh.AddVert(vertex);
 
         vh.AddTriangle(index, index + 1, index + 2);
