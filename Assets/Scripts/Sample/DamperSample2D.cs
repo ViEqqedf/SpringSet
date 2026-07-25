@@ -33,6 +33,6 @@ public class DamperSample2D : MonoBehaviour
     {
         Current = SpringSet.DamperCalc(Current, Target, Factor * Interval);
         if (Scope != null)
-            Scope.PushSample(Current);
+            Scope.PushSample(Current, Interval);
     }
 }
