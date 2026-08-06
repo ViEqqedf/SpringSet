@@ -8,7 +8,7 @@ namespace SpringSet
             return (1.0f - a) * x + a * y;
         }
 
-        public static float DamperCalc(float start, float target, float factor)
+        public static float DamperBase(float start, float target, float factor)
         {
             return Lerp(start, target, factor);
         }
@@ -22,7 +22,7 @@ namespace SpringSet
         /// <param name="dt">实际引擎帧时间</param>
         /// <param name="ft">预期固定阻尼帧时间</param>
         /// <returns>阻尼结果值</returns>
-        public static float Damper_Exponential(
+        public static float DamperExponential(
             float x,
             float g,
             float damping,
@@ -47,8 +47,12 @@ namespace SpringSet
             //            = (1 - damping * ft) * e[t]
             // y = 1 - damping * ft 就此得出，y 将作为 a 参与 Lerp 计算
             // 为什么？
-            // 因为 a 是 lerp 中朝目标覆盖的比例，而在误差的递推式中，e[t+n] = y^n * e[t]。因此在每帧插值后，离目标的距离会缩小到原来的百分之 y^n
+            // 因为 a 是 lerp 中朝目标覆盖的比例，而在误差的递推式中，e[t+n] = y^n * e[t]。因此在每帧插值后，离目标的距离会缩小到原来的 y^n
             // 而我们想用一次 lerp 就跳到 n 帧（固定帧时间 ft）后的结果，因此 a = 1 - y^n
+            // x[t+n] = g + e[t+n]
+            //     = g + y^n * e[t]
+            //     = g + y^n * (x[t] - g)
+            //     = lerp(x[t], g, 1 - y^n) -- 这一步回归到 lerp 形式
         }
 
         /// <summary>
@@ -60,7 +64,7 @@ namespace SpringSet
         /// <param name="dt">实际引擎帧时间</param>
         /// <param name="eps"></param>
         /// <returns></returns>
-        public static float Damper_Exact(
+        public static float DamperExact(
             float x,
             float g,
             float halfLife,

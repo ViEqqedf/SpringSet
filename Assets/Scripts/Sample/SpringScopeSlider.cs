@@ -2,28 +2,19 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-// 参数类型：决定滑条驱动 DamperSample2D 的哪个字段
-public enum EScopeParam
+// 参数类型：决定滑条驱动 SpringDamperSample2D 的哪个字段
+public enum ESpringScopeParam
 {
-    // Base 的插值速率
-    Factor,
-    // Exponential 的阻尼系数
+    Stiffness,
     Damping,
-    // Exponential 的预期固定阻尼帧时间
-    Ft,
-    // Exact 的半衰期
-    HalfLife,
-    // Exact 的防除零极小值
-    Eps,
-    // 通用采样间隔
     Interval,
 }
 
-// 自绘滑条：拖动设定 [MinValue, MaxValue] 之间的值，并写回 DamperSample2D
-public class ScopeSlider : Graphic, IDragHandler, IPointerDownHandler
+// 自绘滑条：拖动设定 [MinValue, MaxValue] 之间的值，并写回 SpringDamperSample2D
+public class SpringScopeSlider : Graphic, IDragHandler, IPointerDownHandler
 {
-    public DamperSample2D Sample;
-    public EScopeParam Param = EScopeParam.Factor;
+    public SpringDamperSample2D Sample;
+    public ESpringScopeParam Param = ESpringScopeParam.Stiffness;
     public float MinValue = 0f;
     public float MaxValue = 1f;
     public Color TrackColor = new Color(0.75f, 0.75f, 0.75f, 1f);
@@ -71,48 +62,28 @@ public class ScopeSlider : Graphic, IDragHandler, IPointerDownHandler
     {
         if (Sample == null)
             return MinValue;
-        switch (Param)
-        {
-            case EScopeParam.Factor:
-                return Sample.Factor;
-            case EScopeParam.Damping:
-                return Sample.Damping;
-            case EScopeParam.Ft:
-                return Sample.Ft;
-            case EScopeParam.HalfLife:
-                return Sample.HalfLife;
-            case EScopeParam.Eps:
-                return Sample.Eps;
-            default:
-                return Sample.Interval;
-        }
+        if (Param == ESpringScopeParam.Stiffness)
+            return Sample.Stiffness;
+        if (Param == ESpringScopeParam.Damping)
+            return Sample.Damping;
+        return Sample.Interval;
     }
 
     private void WriteParam(float value)
     {
         if (Sample == null)
             return;
-        switch (Param)
+        if (Param == ESpringScopeParam.Stiffness)
         {
-            case EScopeParam.Factor:
-                Sample.Factor = value;
-                break;
-            case EScopeParam.Damping:
-                Sample.Damping = value;
-                break;
-            case EScopeParam.Ft:
-                Sample.Ft = value;
-                break;
-            case EScopeParam.HalfLife:
-                Sample.HalfLife = value;
-                break;
-            case EScopeParam.Eps:
-                Sample.Eps = value;
-                break;
-            default:
-                Sample.Interval = value;
-                break;
+            Sample.Stiffness = value;
+            return;
         }
+        if (Param == ESpringScopeParam.Damping)
+        {
+            Sample.Damping = value;
+            return;
+        }
+        Sample.Interval = value;
     }
 
     private void RefreshLabel()
