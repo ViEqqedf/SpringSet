@@ -45,7 +45,10 @@ namespace DefaultNamespace
             // 注意到 (g - x[t]) = -(x[t] - g) = -e[t]，代入
             //     e[t+1] = e[t] - damping * ft * e[t]
             //            = (1 - damping * ft) * e[t]
-            // y = 1 - damping * ft 就此得出，y 将作为精确阻尼器的衰减比例因子参与计算
+            // y = 1 - damping * ft 就此得出，y 将作为 a 参与 Lerp 计算
+            // 为什么？
+            // 因为 a 是 lerp 中朝目标覆盖的比例，而在误差的递推式中，e[t+n] = y^n * e[t]。因此在每帧插值后，离目标的距离会缩小到原来的百分之 y^n
+            // 而我们想用一次 lerp 就跳到 n 帧（固定帧时间 ft）后的结果，一次 lerp 会插值 a 比例的距离，因此 a = 1 - y^n
         }
 
         /// <summary>
@@ -69,6 +72,7 @@ namespace DefaultNamespace
             return Lerp(x, g, 1.0f - Mathf.Exp(-(0.69314718056f * dt) / (halfLife + eps)));
 
             // 简单等价公式（作参考）
+            // 将 y = 1 - damping * ft 固定为 0.5，表示每半衰期后误差减半
             // return Lerp(x, g, 1.0f - Mathf.Pow(2, -dt / (halfLife + eps)));
         }
     }
