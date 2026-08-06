@@ -1,5 +1,4 @@
 using UnityEngine;
-using DefaultNamespace;
 
 // 纯数值阻尼模型：Current 以阻尼方式趋近 Target，并把采样喂给 2D 示波器
 public class DamperSample2D : MonoBehaviour
@@ -31,7 +30,7 @@ public class DamperSample2D : MonoBehaviour
 
     private void Step()
     {
-        Current = SpringSet.DamperCalc(Current, Target, Factor * Interval);
+        Current = SpringSet.Damper.DamperCalc(Current, Target, Factor * Interval);
         if (Scope != null)
             Scope.PushSample(Current, Interval);
     }

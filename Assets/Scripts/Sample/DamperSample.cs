@@ -1,6 +1,4 @@
 using UnityEngine;
-using DefaultNamespace;
-using UnityEngine.UI;
 
 public class DamperSample : MonoBehaviour
 {
@@ -103,7 +101,7 @@ public class DamperSample : MonoBehaviour
 
         float currentCoord = ProjectToAxis(transform.position);
         float targetCoord = ProjectToAxis(Target.position);
-        float nextCoord = SpringSet.DamperCalc(currentCoord, targetCoord, Factor * Time.deltaTime);
+        float nextCoord = SpringSet.Damper.DamperCalc(currentCoord, targetCoord, Factor * Time.deltaTime);
 
         Vector3 perpendicular = transform.position - (_origin + _normalizedAxis * currentCoord);
         transform.position = _origin + _normalizedAxis * nextCoord + perpendicular;
