@@ -42,6 +42,26 @@ namespace SpringSet
             float dt,
             float eps = 1e-5f)
         {
+            // 在 SpringDamperBad 的基础上
+            // SpringDamperBad 采用显式欧拉数值积分（逐步累加 a -> v -> x），dt 稍大就会震荡甚至爆炸
+            // SpringDamperExact 改用解析解，对任意 dt 都精确且稳定
+
+            // 推导起点：把运动方程整理成标准二阶线性微分方程
+            //     a = s * (g - x) + d * (q - v)
+            //     展开、移项、取负后（其中 a = x''，v = x'）得到：
+            //     x'' + d * x' + s * x = s * g + d * q
+
+            // 猜一个衰减振荡形式的解（此实现仅覆盖欠阻尼情形 s - d^2 / 4 > 0）：
+            //     x[t] = j * e^(-y * t) * cos(w * t + p) + c
+            // 代入方程后，cos、sin、常数三者线性无关，要对所有 t 恒成立，各自系数必须为零
+            // 由此逐一解出下面 5 个参数：
+            //     c：平衡位置，令 x'' = x' = 0 得 s * c = s * g + d * q，故 c = g + d * q / s
+            //     y：衰减率，由特征方程 r^2 + d * r + s = 0 得 y = d / 2
+            //     w：振动频率，w = sqrt(s - d^2 / 4)
+            //     j：振幅，由初始 x、v 与平衡位置 c 决定
+            //     p：相位，由初始 x、v 与平衡位置 c 决定
+            // 最终 x 即解析式本身，v 为该式对 t 求导的结果
+
             float g = xGoal;
             float q = vGoal;
             float s = stiffness;
@@ -54,7 +74,8 @@ namespace SpringSet
 
             j = (x - c) > 0 ? j : -j;
 
-            float eydt = Mathf.Exp(y * dt);
+            // 注意是负指数 e^(-y * dt)，振幅随时间衰减，系统才会收敛
+            float eydt = Mathf.Exp(-y * dt);
 
             x = j * eydt * Mathf.Cos(w * dt + p) + c;
             v = -y * j * eydt * Mathf.Cos(w * dt + p) - w * j * eydt * Mathf.Sin(w * dt + p);
