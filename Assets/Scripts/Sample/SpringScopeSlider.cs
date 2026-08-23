@@ -7,6 +7,11 @@ public enum ESpringScopeParam
 {
     Stiffness,
     Damping,
+    Frequency,
+    HalfLife,
+    DampingRatio,
+    TargetVelocity,
+    Eps,
     Interval,
 }
 
@@ -62,28 +67,58 @@ public class SpringScopeSlider : Graphic, IDragHandler, IPointerDownHandler
     {
         if (Sample == null)
             return MinValue;
-        if (Param == ESpringScopeParam.Stiffness)
-            return Sample.Stiffness;
-        if (Param == ESpringScopeParam.Damping)
-            return Sample.Damping;
-        return Sample.Interval;
+        switch (Param)
+        {
+            case ESpringScopeParam.Stiffness:
+                return Sample.Stiffness;
+            case ESpringScopeParam.Damping:
+                return Sample.Damping;
+            case ESpringScopeParam.Frequency:
+                return Sample.Frequency;
+            case ESpringScopeParam.HalfLife:
+                return Sample.HalfLife;
+            case ESpringScopeParam.DampingRatio:
+                return Sample.DampingRatio;
+            case ESpringScopeParam.TargetVelocity:
+                return Sample.TargetVelocity;
+            case ESpringScopeParam.Eps:
+                return Sample.Eps;
+            default:
+                return Sample.Interval;
+        }
     }
 
     private void WriteParam(float value)
     {
         if (Sample == null)
             return;
-        if (Param == ESpringScopeParam.Stiffness)
+        switch (Param)
         {
-            Sample.Stiffness = value;
-            return;
+            case ESpringScopeParam.Stiffness:
+                Sample.Stiffness = value;
+                break;
+            case ESpringScopeParam.Damping:
+                Sample.Damping = value;
+                break;
+            case ESpringScopeParam.Frequency:
+                Sample.Frequency = value;
+                break;
+            case ESpringScopeParam.HalfLife:
+                Sample.HalfLife = value;
+                break;
+            case ESpringScopeParam.DampingRatio:
+                Sample.DampingRatio = value;
+                break;
+            case ESpringScopeParam.TargetVelocity:
+                Sample.TargetVelocity = value;
+                break;
+            case ESpringScopeParam.Eps:
+                Sample.Eps = value;
+                break;
+            default:
+                Sample.Interval = value;
+                break;
         }
-        if (Param == ESpringScopeParam.Damping)
-        {
-            Sample.Damping = value;
-            return;
-        }
-        Sample.Interval = value;
     }
 
     private void RefreshLabel()
