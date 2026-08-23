@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 namespace SpringSet
 {
     public class SpringDamper
@@ -32,7 +32,8 @@ namespace SpringSet
             x += dt * v;
         }
 
-        public static void SpringDamperExact(
+        /// 精确弹簧阻尼的欠阻尼问题处理版本，会发现 s - d^2 / 4 的三种临界情形未考虑周全
+        public static void SpringDamperExactUnderDamped(
             ref float x,
             ref float v,
             float xGoal,
@@ -60,7 +61,6 @@ namespace SpringSet
             //     w：振动频率，w = sqrt(s - d^2 / 4)
             //     j：振幅，由初始 x、v 与平衡位置 c 决定
             //     p：相位，由初始 x、v 与平衡位置 c 决定
-            // 最终 x 即解析式本身，v 为该式对 t 求导的结果
 
             float g = xGoal;
             float q = vGoal;
@@ -79,6 +79,99 @@ namespace SpringSet
 
             x = j * eydt * Mathf.Cos(w * dt + p) + c;
             v = -y * j * eydt * Mathf.Cos(w * dt + p) - w * j * eydt * Mathf.Sin(w * dt + p);
+        }
+
+        public static void SpringDamperExact(
+            ref float x,
+            ref float v,
+            float xGoal,
+            float vGoal,
+            float stiffness,
+            float damping,
+            float dt,
+            float eps = 1e-5f)
+        {
+            // 相比 SpringDamperExactUnderDamped 只覆盖欠阻尼一种情形，
+            // SpringDamperExact 补全了临界阻尼与过阻尼两个分支，对任意 stiffness、damping 都成立
+
+            // 推导起点：把运动方程整理成标准二阶线性微分方程（其中 a = x''，v = x'）
+            //     a = s * (g - x) + d * (q - v)
+            //     => x'' + d * x' + s * x = s * g + d * q
+
+            // 特征方程从哪来：先解齐次部分 x'' + d * x' + s * x = 0
+            // 指数函数求导后形状不变（只多乘一个常数），因此猜解 x = e^(r * t)，代入得：
+            //     r^2 * e^(r*t) + d * r * e^(r*t) + s * e^(r*t) = 0
+            //     e^(r*t) 恒不为零，两边约去后得到特征方程：r^2 + d * r + s = 0
+            //     规律：几阶导数就换成 r 的几次方（x'' -> r^2，x' -> r，x -> 1）
+            // 求根 r = -d / 2 ± sqrt(d^2 / 4 - s)，根 r 即系统的性格：实部管衰减快慢、虚部管是否振荡
+
+            // 为什么通解是“两个解的组合”：
+            //     二阶系统有位置和速度两个自由度，需要两个自由常数才能匹配任意初始 x、v
+            //     线性齐次方程满足叠加原理：若 A、B 各是解，则 j0 * A + j1 * B 也是解（因为求导是线性的）
+            //     故取两个线性无关的基础解、用两个常数组合，即可表示所有可能的运动
+
+            // 判别式 s - d^2 / 4 的符号决定特征根类型，进而决定“该猜什么形式的解”，分三种阻尼状态：
+            //     > 0 欠阻尼：一对复根 -y ± i * w，实数解为 j * e^(-y * t) * cos(w * t + p) + c，会振荡
+            //     < 0 过阻尼：两个不同实根，解为 j0 * e^(-y0 * t) + j1 * e^(-y1 * t) + c，缓慢趋近
+            //         注意此时特征方程根号内 d^2 / 4 - s 为正（与频率 w = sqrt(s - d^2 / 4) 的根号符号相反），故为实根不振荡
+            //     = 0 临界阻尼：重根 r = -y 只给出一个解 e^(-y * t)，但二阶需两个独立解，第二个用 t * e^(-y * t) 补足
+            //         这个 t 的来历：取过阻尼两解的差商 (e^(r0*t) - e^(r1*t)) / (r0 - r1)，令 r0 -> r1
+            //         其极限恰为对 r 求导 d/dr[e^(r*t)] = t * e^(r*t)（t 视作常数、r 为变量），解为 (j0 + j1 * t) * e^(-y * t) + c
+
+            // 三种情形共用两个参数：
+            //     c：平衡位置（最终停在哪），令 x'' = x' = 0 得 c = g + d * q / s
+            //     y：衰减率，y = d / 2（即特征根的实部）
+
+            float g = xGoal;
+            float q = vGoal;
+            float s = stiffness;
+            float d = damping;
+            float c = g + d * q / (s + eps);
+            float y = d / 2f;
+
+            if (Mathf.Abs(s - d * d / 4f) < eps)
+            {
+                // 临界阻尼：重根 r = -y，缺失的第二个独立解用 t * e^(-y * t) 补足
+                // 由初始条件定：j0 = x - c（初始偏移），j1 = v + j0 * y（匹配初始速度）
+                // 下面 x、v 即 x = (j0 + j1 * t) * e^(-y * t) + c 及其对 t 的导数
+                float j0 = x - c;
+                float j1 = v + j0 * y;
+                float eydt = Mathf.Exp(-y * dt);
+
+                x = j0 * eydt + dt * j1 * eydt + c;
+                v = -y * j0 * eydt - y * dt * j1 * eydt + j1 * eydt;
+            }
+            else if (s - d * d / 4f > 0f)
+            {
+                // 欠阻尼：复根 -y ± i * w，虚部 w 成为 cos / sin 的振荡频率
+                // w 振动频率、j 振幅、p 相位；j、p 由初始 x、v 与 c 决定
+                // p 用单参 Atan 值域只有半圈，故用 j 的正负号补足另外半圈
+                float w = Mathf.Sqrt(s - d * d / 4f);
+                float j = Mathf.Sqrt((v + y * (x - c)) * (v + y * (x - c)) / (w * w + eps) + (x - c) * (x - c));
+                float p = Mathf.Atan((v + (x - c) * y) / (-(x - c) * w + eps));
+
+                j = (x - c) > 0f ? j : -j;
+
+                float eydt = Mathf.Exp(-y * dt);
+
+                x = j * eydt * Mathf.Cos(w * dt + p) + c;
+                v = -y * j * eydt * Mathf.Cos(w * dt + p) - w * j * eydt * Mathf.Sin(w * dt + p);
+            }
+            else
+            {
+                // 过阻尼：两个不同的正实衰减率 y0 > y1，解为两个衰减指数叠加，无振荡
+                // j0、j1 由初始 x、v 与 c 决定；衰减较慢的 y1 项主导后期趋近速度
+                float y0 = (d + Mathf.Sqrt(d * d - 4f * s)) / 2f;
+                float y1 = (d - Mathf.Sqrt(d * d - 4f * s)) / 2f;
+                float j1 = (c * y0 - x * y0 - v) / (y1 - y0);
+                float j0 = x - j1 - c;
+
+                float ey0dt = Mathf.Exp(-y0 * dt);
+                float ey1dt = Mathf.Exp(-y1 * dt);
+
+                x = j0 * ey0dt + j1 * ey1dt + c;
+                v = -y0 * j0 * ey0dt - y1 * j1 * ey1dt;
+            }
         }
     }
 }
