@@ -279,5 +279,86 @@ namespace SpringSet
                 v = -y0 * j0 * ey0dt - y1 * j1 * ey1dt;
             }
         }
+
+        // 阻尼比转刚度：由定义 r = d / (2 * sqrt(s)) 变形，sqrt(s) = d / (2 * r)，故 s = (d / (2 * r))^2
+        public static float DampingRatioToStiffness(float ratio, float damping)
+        {
+            float root = damping / (ratio * 2f);
+            return root * root;
+        }
+
+        // 阻尼比转阻尼：由定义 r = d / (2 * sqrt(s)) 变形，d = 2 * r * sqrt(s)
+        public static float DampingRatioToDamping(float ratio, float stiffness)
+        {
+            return ratio * 2f * Mathf.Sqrt(stiffness);
+        }
+
+        public static void SpringDamperExactRatio(
+            ref float x,
+            ref float v,
+            float xGoal,
+            float vGoal,
+            float dampingRatio,
+            float halfLife,
+            float dt,
+            float eps = 1e-5f)
+        {
+            // 与 SpringDamperExact 数学主体完全相同，区别在于用阻尼比 dampingRatio 参数化弹性
+            // 阻尼比 r = d / (2 * sqrt(s)) 是个无量纲量，直接描述“弹性程度”，比 stiffness、damping 更贴近直觉：
+            //     r < 1 欠阻尼（弹，会振荡）
+            //     r = 1 临界阻尼（最快收敛且不振荡）
+            //     r > 1 过阻尼（黏，缓慢趋近）
+            // 用户只需在一条“从不弹到很弹”的刻度上滑动 r 即可
+            // 本版先由 halfLife 得 d，再由 r 与 d 反推 s（与 SpringDamperExactHalfLife 的顺序相反）
+            //     d = HalfLifeToDamping(halfLife)
+            //     s = DampingRatioToStiffness(dampingRatio, d) = (d / (2 * r))^2
+            // 换算回 s、d 后，后续三分支逻辑一字不差（详见 SpringDamperExact 注释）
+
+            float g = xGoal;
+            float q = vGoal;
+            float d = HalfLifeToDamping(halfLife);
+            float s = DampingRatioToStiffness(dampingRatio, d);
+            float c = g + d * q / (s + eps);
+            float y = d / 2f;
+
+            if (Mathf.Abs(s - d * d / 4f) < eps)
+            {
+                // 临界阻尼
+                float j0 = x - c;
+                float j1 = v + j0 * y;
+                float eydt = Mathf.Exp(-y * dt);
+
+                x = j0 * eydt + dt * j1 * eydt + c;
+                v = -y * j0 * eydt - y * dt * j1 * eydt + j1 * eydt;
+            }
+            else if (s - d * d / 4f > 0f)
+            {
+                // 欠阻尼
+                float w = Mathf.Sqrt(s - d * d / 4f);
+                float j = Mathf.Sqrt((v + y * (x - c)) * (v + y * (x - c)) / (w * w + eps) + (x - c) * (x - c));
+                float p = Mathf.Atan((v + (x - c) * y) / (-(x - c) * w + eps));
+
+                j = (x - c) > 0f ? j : -j;
+
+                float eydt = Mathf.Exp(-y * dt);
+
+                x = j * eydt * Mathf.Cos(w * dt + p) + c;
+                v = -y * j * eydt * Mathf.Cos(w * dt + p) - w * j * eydt * Mathf.Sin(w * dt + p);
+            }
+            else
+            {
+                // 过阻尼
+                float y0 = (d + Mathf.Sqrt(d * d - 4f * s)) / 2f;
+                float y1 = (d - Mathf.Sqrt(d * d - 4f * s)) / 2f;
+                float j1 = (c * y0 - x * y0 - v) / (y1 - y0);
+                float j0 = x - j1 - c;
+
+                float ey0dt = Mathf.Exp(-y0 * dt);
+                float ey1dt = Mathf.Exp(-y1 * dt);
+
+                x = j0 * ey0dt + j1 * ey1dt + c;
+                v = -y0 * j0 * ey0dt - y1 * j1 * ey1dt;
+            }
+        }
     }
 }
