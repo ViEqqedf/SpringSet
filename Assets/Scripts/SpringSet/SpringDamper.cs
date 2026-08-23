@@ -173,5 +173,111 @@ namespace SpringSet
                 v = -y0 * j0 * ey0dt - y1 * j1 * ey1dt;
             }
         }
+
+        // 频率转刚度：无阻尼弹簧 x'' + s * x = 0 的角频率为 sqrt(s)，而角频率 = 2 * PI * frequency，
+        // 故 s = (2 * PI * frequency)^2。用 frequency（每秒振荡多少次）比直接给 stiffness 更直观
+        public static float FrequencyToStiffness(float frequency)
+        {
+            float angular = 2f * Mathf.PI * frequency;
+            return angular * angular;
+        }
+
+        // 刚度转频率：上式的逆运算 frequency = sqrt(s) / (2 * PI)
+        public static float StiffnessToFrequency(float stiffness)
+        {
+            return Mathf.Sqrt(stiffness) / (2f * Mathf.PI);
+        }
+
+        // 半衰期转阻尼：由振幅衰减一半 e^(-(d / 2) * halfLife) = 1 / 2 得 d = 2 * ln(2) / halfLife，
+        // 额外再乘 2（即 4 * ln(2)）让此处 halfLife 的手感与基础阻尼器的 halfLife 更一致
+        public static float HalfLifeToDamping(float halfLife, float eps = 1e-5f)
+        {
+            return (4f * 0.69314718056f) / (halfLife + eps);
+        }
+
+        // 阻尼转半衰期：上式的逆运算，形式完全对称
+        public static float DampingToHalfLife(float damping, float eps = 1e-5f)
+        {
+            return (4f * 0.69314718056f) / (damping + eps);
+        }
+
+        // 给定 frequency，求恰好达到临界阻尼所需的 halfLife
+        // 临界条件 s = d^2 / 4，即 d = 2 * sqrt(s) = sqrt(4 * s)，再由 d 换算成 halfLife
+        public static float CriticalHalfLife(float frequency)
+        {
+            return DampingToHalfLife(Mathf.Sqrt(FrequencyToStiffness(frequency) * 4f));
+        }
+
+        // 给定 halfLife，求恰好达到临界阻尼所需的 frequency
+        // 临界条件 s = d^2 / 4，先由 halfLife 得 d，再算 s = d^2 / 4，最后换算成 frequency
+        public static float CriticalFrequency(float halfLife)
+        {
+            float d = HalfLifeToDamping(halfLife);
+            return StiffnessToFrequency(d * d / 4f);
+        }
+
+        public static void SpringDamperExactHalfLife(
+            ref float x,
+            ref float v,
+            float xGoal,
+            float vGoal,
+            float frequency,
+            float halfLife,
+            float dt,
+            float eps = 1e-5f)
+        {
+            // 与 SpringDamperExact 的数学主体完全相同，唯一区别是入参更直观：
+            // 用 frequency（振荡快慢）与 halfLife（收敛快慢）代替抽象的 stiffness 和 damping，
+            // 进入函数后立即换算回 s、d，后续三分支逻辑一字不差（详见 SpringDamperExact 注释）
+            //     s = FrequencyToStiffness(frequency) = (2 * PI * frequency)^2
+            //     d = HalfLifeToDamping(halfLife)     = 4 * ln(2) / halfLife
+            // 想让系统恰好临界阻尼，可用 CriticalHalfLife / CriticalFrequency 由一个参数反推另一个
+
+            float g = xGoal;
+            float q = vGoal;
+            float s = FrequencyToStiffness(frequency);
+            float d = HalfLifeToDamping(halfLife);
+            float c = g + d * q / (s + eps);
+            float y = d / 2f;
+
+            if (Mathf.Abs(s - d * d / 4f) < eps)
+            {
+                // 临界阻尼
+                float j0 = x - c;
+                float j1 = v + j0 * y;
+                float eydt = Mathf.Exp(-y * dt);
+
+                x = j0 * eydt + dt * j1 * eydt + c;
+                v = -y * j0 * eydt - y * dt * j1 * eydt + j1 * eydt;
+            }
+            else if (s - d * d / 4f > 0f)
+            {
+                // 欠阻尼
+                float w = Mathf.Sqrt(s - d * d / 4f);
+                float j = Mathf.Sqrt((v + y * (x - c)) * (v + y * (x - c)) / (w * w + eps) + (x - c) * (x - c));
+                float p = Mathf.Atan((v + (x - c) * y) / (-(x - c) * w + eps));
+
+                j = (x - c) > 0f ? j : -j;
+
+                float eydt = Mathf.Exp(-y * dt);
+
+                x = j * eydt * Mathf.Cos(w * dt + p) + c;
+                v = -y * j * eydt * Mathf.Cos(w * dt + p) - w * j * eydt * Mathf.Sin(w * dt + p);
+            }
+            else
+            {
+                // 过阻尼
+                float y0 = (d + Mathf.Sqrt(d * d - 4f * s)) / 2f;
+                float y1 = (d - Mathf.Sqrt(d * d - 4f * s)) / 2f;
+                float j1 = (c * y0 - x * y0 - v) / (y1 - y0);
+                float j0 = x - j1 - c;
+
+                float ey0dt = Mathf.Exp(-y0 * dt);
+                float ey1dt = Mathf.Exp(-y1 * dt);
+
+                x = j0 * ey0dt + j1 * ey1dt + c;
+                v = -y0 * j0 * ey0dt - y1 * j1 * ey1dt;
+            }
+        }
     }
 }
