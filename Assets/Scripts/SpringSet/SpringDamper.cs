@@ -360,5 +360,66 @@ namespace SpringSet
                 v = -y0 * j0 * ey0dt - y1 * j1 * ey1dt;
             }
         }
+
+        // 临界弹簧阻尼器（最常用）：固定在临界阻尼情形，s = d^2 / 4 恒成立
+        // 因此不必再判断欠阻尼/临界/过阻尼三种情况，直接套临界公式，可编译成极快的代码
+        // 也因为临界约束 d^2 / 4 = s 让 s、d 不再独立，只需 halfLife 一个参数即可确定整个系统，
+        // 表现为无额外振荡地尽快趋向目标
+        public static void CriticalSpringDamperExact(
+            ref float x,
+            ref float v,
+            float xGoal,
+            float vGoal,
+            float halfLife,
+            float dt)
+        {
+            // c 的分母 s 用临界关系 s = d^2 / 4 代入：c = g + (d * q) / (d^2 / 4)
+            // 速度公式做了化简：由 j1 = v + j0 * y 知 j1 - y * j0 = v，故 v = eydt * (v - j1 * y * dt)
+            float g = xGoal;
+            float q = vGoal;
+            float d = HalfLifeToDamping(halfLife);
+            float c = g + (d * q) / (d * d / 4f);
+            float y = d / 2f;
+            float j0 = x - c;
+            float j1 = v + j0 * y;
+            float eydt = Mathf.Exp(-y * dt);
+
+            x = eydt * (j0 + j1 * dt) + c;
+            v = eydt * (v - j1 * y * dt);
+        }
+
+        // 简化版：目标速度 vGoal 恒为 0（最常见的“平滑趋近并停下”场景）
+        // 此时 c = g（因 q = 0），省去 c 的计算与 vGoal 参数
+        public static void SimpleSpringDamperExact(
+            ref float x,
+            ref float v,
+            float xGoal,
+            float halfLife,
+            float dt)
+        {
+            float y = HalfLifeToDamping(halfLife) / 2f;
+            float j0 = x - xGoal;
+            float j1 = v + j0 * y;
+            float eydt = Mathf.Exp(-y * dt);
+
+            x = eydt * (j0 + j1 * dt) + xGoal;
+            v = eydt * (v - j1 * y * dt);
+        }
+
+        // 衰减版：目标位置与目标速度均为 0，让 x、v 平滑衰减到零
+        // 此时 c = 0、j0 = x，连 xGoal 都省去，常用于惯性化等“把偏移量衰减掉”的场景
+        public static void DecaySpringDamperExact(
+            ref float x,
+            ref float v,
+            float halfLife,
+            float dt)
+        {
+            float y = HalfLifeToDamping(halfLife) / 2f;
+            float j1 = v + x * y;
+            float eydt = Mathf.Exp(-y * dt);
+
+            x = eydt * (x + j1 * dt);
+            v = eydt * (v - j1 * y * dt);
+        }
     }
 }
